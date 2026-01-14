@@ -3,50 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OBS Alert Overlay</title>
+    <title>OBS Alert - Remote & Custom CSS</title>
     <style>
-        /* Import Font */
+        /* --- CSS DARI USER --- */
         @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700;800&display=swap');
 
-        /* Reset & Body (Transparan untuk OBS) */
-        html, body {
-            margin: 0;
-            padding: 0;
-            background-color: transparent; /* Default untuk OBS */
-            font-family: 'Open Sans', sans-serif;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start; /* Alert muncul dari atas */
-            height: 100vh;
-            transition: background-color 0.3s; /* Efek halus saat ganti BG testing */
-        }
-
-        /* --- CSS TAMPILAN --- */
         .alert {
             font-family: 'Open Sans', sans-serif !important;
             font-weight: 800;
             text-align: center;
             padding-top: 10px;
             text-shadow: 0 0 1px #000, 0 0 2px #000, 0 0 3px #000, 0 0 4px #000, 0 0 5px #000;
-            width: 100%;
-            max-width: 400px; 
-            box-sizing: border-box;
             
-            opacity: 0; /* Default sembunyi */
-            transition: none !important;
-            animation: none !important;
+            width: 100%;
+            max-width: 400px;
+            box-sizing: border-box;
+            opacity: 0; 
+            /* Transition dihapus (no fade anim) */
         }
 
         .media {
-            max-width: 100%; 
-            height: auto;
+            height: 100%;
+            width: 100%;
             border-radius: 10px;
             margin-bottom: 14px;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            display: block; 
+            object-fit: cover; 
         }
 
         .template {
@@ -80,20 +62,31 @@
             95% { transform: rotate(-5deg); }
         }
 
-        /* --- PANEL KONTROL MELEBAR (BOTTOM BAR) --- */
+        /* --- LAYOUT & KONTROL --- */
+        html, body {
+            margin: 0;
+            padding: 0;
+            background-color: transparent;
+            font-family: 'Open Sans', sans-serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            height: 100vh;
+        }
+
         #test-controls {
             position: fixed;
             bottom: 0;
             left: 0;
             width: 100%; 
-            background: transparent; /* Background jadi Transparan */
+            background: transparent;
             padding: 15px 20px;
             z-index: 999;
             display: flex;
             flex-direction: row; 
             align-items: center;
             gap: 15px;
-            border-top: none; /* Hapus border */
             box-sizing: border-box;
         }
 
@@ -102,13 +95,14 @@
             flex-direction: row;
             gap: 10px;
             flex-grow: 1; 
+            flex-wrap: wrap;
         }
 
         input[type="text"] {
             padding: 10px;
             border-radius: 4px;
             border: 1px solid #555;
-            background: rgba(34, 34, 34, 0.8); /* Sedikit transparan pada input agar tidak terlalu mencolok */
+            background: rgba(34, 34, 34, 0.9);
             color: #fff;
             flex: 1; 
             min-width: 100px;
@@ -136,9 +130,9 @@
             background: #00d2ff;
         }
 
-        /* Tombol Ganti Background (Orange) */
         button.bg-btn {
-            background: #ff9900;
+            background: #ff00ff; /* Magenta */
+            color: white;
         }
 
         button:hover {
@@ -156,161 +150,252 @@
             border-radius: 10px;
             margin-bottom: 14px;
         }
+
+        /* Indikator Status Koneksi */
+        #status-indicator {
+            position: fixed;
+            bottom: 5px;
+            right: 5px;
+            font-size: 10px;
+            color: #aaa;
+            z-index: 1000;
+        }
     </style>
 </head>
 <body>
 
     <div id="alert-box" class="alert">
-        <!-- Ganti 'thanks.gif' dengan URL gambar jika ingin pakai link online -->
         <img src="thanks.gif" class="media" id="alert-media" onerror="this.style.display='none'; document.getElementById('media-fallback').style.display='flex'">
         <div id="media-fallback" class="img-placeholder" style="display: none;">thanks.gif missing</div>
 
         <p class="template">
-            <span class="wiggle" id="amount-text">Rp 50.000</span> 
+            <span class="wiggle" id="amount-text">Rp 0</span> 
             <span class="from">dari</span> 
-            <span class="wiggle" id="supporter-name">Misterius</span>
+            <span class="wiggle" id="supporter-name">User</span>
         </p>
-        <p class="message" id="message-text">Semangat streamingnya bang!</p>
+        <p class="message" id="message-text">Pesan...</p>
     </div>
 
-    <!-- PANEL KONTROL LENGKAP -->
+    <!-- PANEL KONTROL -->
     <div id="test-controls">
         <div class="input-group">
             <input type="text" id="input-name" placeholder="Nama" value="Penonton Setia">
             <input type="text" id="input-amount" placeholder="Nominal" value="IDR 10,000">
+            <input type="text" id="input-image" placeholder="URL Gambar (Kosong = thanks.gif)" value="">
             <input type="text" id="input-message" placeholder="Pesan..." value="Halo bang, request lagu dong!">
         </div>
         <div class="btn-group">
-            <button class="manual-btn" onclick="triggerManualAlert()">Kirim</button>
-            <button onclick="simulateDonation()">Acak</button>
-            <button class="bg-btn" onclick="toggleBackground()" title="Ganti warna background untuk testing">Ganti BG</button>
+            <button class="manual-btn" id="btn-kirim">Kirim</button>
+            <button id="btn-acak">Acak</button>
+            <button class="bg-btn" onclick="toggleBackground()">Ganti BG</button>
         </div>
     </div>
+    
+    <div id="status-indicator">Connecting...</div>
 
-    <script>
-        // --- DATA DUMMY ---
-        const names = [
-            "Sultan_Gabut", "Anak_Kos", "FansBerat01", "Kang_Bakso", 
-            "User123", "SiapaHayoo", "Admin_Tobat", "Warga_Konoha", 
-            "Pejuang_Rupiah", "Siti", "Budi_Ganteng", "Anonim", "Kucing_Oren"
-        ];
+    <script type="module">
+        // --- FIREBASE IMPORTS ---
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        const amounts = [
-            "IDR 10,000", "Rp 50.000", "Rp 100.000", "IDR 20,000", 
-            "1000 Stars", "Rp 5.000", "500 Stars", "$5.00", "Rp 250.000"
-        ];
+        // --- KONFIGURASI FIREBASE ---
+        // Mencoba mengambil config dari environment variable
+        let db, auth, appId;
+        const statusDiv = document.getElementById('status-indicator');
 
-        const messages = [
-            "Semangat terus bang!",
-            "Halo bang, salam dari Binjai.",
-            "Request lagu dong.",
-            "GGWP! Mainnya jago.",
-            "Semoga harimu menyenangkan.",
-            "Bang sapa aku dong!",
-            "Info loker admin bang.",
-            "Buat beli kopi bang.",
-            "Mantap bang, lanjutkannnn!"
-        ];
+        try {
+            const firebaseConfig = JSON.parse(__firebase_config);
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            
+            // Login Anonymously
+            signInAnonymously(auth).catch(console.error);
+            
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    statusDiv.innerText = "Connected: " + user.uid.substring(0,5);
+                    setupListener(user);
+                } else {
+                    statusDiv.innerText = "Disconnected";
+                }
+            });
 
+        } catch (e) {
+            console.error("Firebase Config Error:", e);
+            statusDiv.innerText = "Offline Mode (Local Only)";
+            // Fallback untuk mode offline murni jika perlu, tapi fitur remote akan mati
+        }
+
+        // --- LOGIKA ALERT (LOKAL) ---
         let hideTimeout = null; 
+        let voices = [];
+        let indoVoice = null;
+        let lastProcessedTime = Date.now(); // Untuk mencegah alert lama muncul saat reload
 
-        // --- FITUR GANTI BACKGROUND (UNTUK TESTING DI CHROME) ---
+        // Setup Suara
+        function loadVoices() {
+            voices = window.speechSynthesis.getVoices();
+            indoVoice = voices.find(voice => voice.name.includes('Google Bahasa Indonesia')) || 
+                        voices.find(voice => voice.name.includes('Microsoft Gadis')) ||
+                        voices.find(voice => voice.lang === 'id-ID');
+        }
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = loadVoices;
+        }
+
         function toggleBackground() {
             const currentBg = document.body.style.backgroundColor;
-            
-            // Logika Rotasi Warna: Transparan -> Abu Gelap -> Merah Terang -> Transparan
             if (currentBg === "" || currentBg === "transparent" || currentBg === "rgba(0, 0, 0, 0)") {
-                document.body.style.backgroundColor = "#333"; // Abu-abu Gelap (Biar teks kelihatan)
-            } else if (currentBg === "rgb(51, 51, 51)") { // #333 dalam RGB
-                document.body.style.backgroundColor = "#ff0000"; // Merah Terang (Agar kontras dengan teks hijau)
+                document.body.style.backgroundColor = "#ff00ff"; // Magenta
             } else {
-                document.body.style.backgroundColor = "transparent"; // Kembali ke Transparan (Untuk OBS)
+                document.body.style.backgroundColor = "transparent"; 
             }
         }
 
-        // --- FORMAT TEKS AGAR DIBACA NATURAL ---
         function cleanTextForSpeech(text) {
             let clean = text;
             clean = clean.replace(/IDR\s*/gi, '');
             clean = clean.replace(/Rp\.?\s*/gi, '');
             clean = clean.replace(/\$/g, ''); 
-            clean = clean.replace(/,/g, ''); // Hapus koma agar "10,000" dibaca "Sepuluh Ribu"
+            clean = clean.replace(/,/g, ''); 
             clean = clean.replace(/Stars/gi, 'Bintang');
             return clean;
         }
 
-        // --- FUNGSI BICARA (ONLINE ONLY - GOOGLE TTS) ---
         function speakText(text) {
-            // URL Google Translate TTS (Default: Wanita Indonesia)
-            const safeText = text.substring(0, 200); 
-            const encodedText = encodeURIComponent(safeText);
-            
-            // Menggunakan client=tw-ob untuk akses publik TTS Google
-            const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=id&client=tw-ob&q=${encodedText}`;
-
-            const audio = new Audio(url);
-            
-            audio.onplay = () => {
-                console.log("Berhasil memutar TTS Online (Google Wanita)");
-            };
-
-            audio.onerror = (e) => {
-                console.error("Gagal memutar TTS. Pastikan koneksi internet aktif.", e);
-            };
-
-            audio.play().catch(e => {
-                console.error("Autoplay dicegah oleh browser. Interaksi user mungkin diperlukan pertama kali.", e);
-            });
+            window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(text);
+            if (indoVoice) utterance.voice = indoVoice;
+            utterance.lang = 'id-ID'; 
+            utterance.rate = 1.0;     
+            window.speechSynthesis.speak(utterance);
         }
 
-        // --- LOGIKA TAMPILAN ALERT ---
-        function showAlert(name, amount, message) {
+        // Fungsi Menampilkan Alert di Layar (Visual & Audio)
+        function doShowAlert(name, amount, message, imageUrl) {
             const alertBox = document.getElementById('alert-box');
-            
-            // Tampil
+            const mediaElement = document.getElementById('alert-media');
+            const mediaFallback = document.getElementById('media-fallback');
+
+            // Handle Gambar
+            if (imageUrl && imageUrl.trim() !== "") {
+                mediaElement.src = imageUrl;
+            } else {
+                mediaElement.src = "thanks.gif";
+            }
+            mediaElement.style.display = 'block';
+            mediaFallback.style.display = 'none';
+
+            // Handle Teks
+            document.getElementById('amount-text').innerText = amount;
+            document.getElementById('supporter-name').innerText = name;
+            document.getElementById('message-text').innerText = message;
+
+            // Tampilkan (No Fade)
             alertBox.style.opacity = '1';
             
-            // Timer 12 Detik
+            // Timer Reset
             if (hideTimeout) clearTimeout(hideTimeout);
             hideTimeout = setTimeout(() => {
                 alertBox.style.opacity = '0';
             }, 12000); 
 
-            // Update Teks Layar
-            document.getElementById('amount-text').innerText = amount;
-            document.getElementById('supporter-name').innerText = name;
-            document.getElementById('message-text').innerText = message;
-            
-            // Siapkan Teks untuk Dibaca
+            // Audio TTS
             const spokenAmount = cleanTextForSpeech(amount);
             const textToRead = `${spokenAmount} dari ${name}. ${message}`;
+            setTimeout(() => {
+                speakText(textToRead);
+            }, 200);
+        }
+
+        // --- LOGIKA DATABASE (REMOTE) ---
+
+        // 1. MENDENGARKAN DATA (Receiver)
+        function setupListener(user) {
+            if (!db) return;
             
-            console.log("Membaca:", textToRead); 
-            speakText(textToRead);
+            // Gunakan collection 'public' agar bisa dishare antar device tanpa login spesifik
+            const alertsRef = collection(db, 'artifacts', appId, 'public', 'data', 'obs_alerts');
+
+            onSnapshot(alertsRef, (snapshot) => {
+                snapshot.docChanges().forEach((change) => {
+                    if (change.type === "added") {
+                        const data = change.doc.data();
+                        
+                        // Filter: Hanya tampilkan data yang baru dibuat (kurang dari 10 detik yang lalu)
+                        // Ini penting agar saat OBS direfresh, alert lama tidak muncul semua
+                        if (data.timestamp && data.timestamp > Date.now() - 10000) {
+                            console.log("Alert baru diterima dari Database:", data);
+                            doShowAlert(data.name, data.amount, data.message, data.image);
+                        }
+                    }
+                });
+            }, (error) => {
+                console.error("Error listening to alerts:", error);
+            });
         }
 
-        function triggerManualAlert() {
-            const name = document.getElementById('input-name').value;
-            const amount = document.getElementById('input-amount').value;
-            const message = document.getElementById('input-message').value;
+        // 2. MENGIRIM DATA (Sender)
+        async function sendAlertToDB(name, amount, message, image) {
+            if (!db || !auth.currentUser) {
+                // Jika offline/error config, fallback ke lokal
+                console.warn("Database tidak siap, menjalankan alert lokal.");
+                doShowAlert(name, amount, message, image);
+                return;
+            }
 
-            const finalName = name || "Anonim";
-            const finalAmount = amount || "Rp 0";
-            const finalMessage = message || "Tes alert manual.";
-
-            showAlert(finalName, finalAmount, finalMessage);
+            try {
+                const alertsRef = collection(db, 'artifacts', appId, 'public', 'data', 'obs_alerts');
+                await addDoc(alertsRef, {
+                    name: name,
+                    amount: amount,
+                    message: message,
+                    image: image,
+                    timestamp: Date.now() // Waktu klien saat ini
+                });
+                console.log("Alert dikirim ke Database!");
+            } catch (e) {
+                console.error("Gagal mengirim alert:", e);
+                alert("Gagal mengirim ke remote: " + e.message);
+            }
         }
 
-        function simulateDonation() {
-            const randomName = names[Math.floor(Math.random() * names.length)];
-            const randomAmount = amounts[Math.floor(Math.random() * amounts.length)];
-            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+        // --- EVENT HANDLERS TOMBOL ---
 
-            showAlert(randomName, randomAmount, randomMessage);
-        }
+        document.getElementById('btn-kirim').onclick = () => {
+            const name = document.getElementById('input-name').value || "Anonim";
+            const amount = document.getElementById('input-amount').value || "Rp 0";
+            const message = document.getElementById('input-message').value || "Tes alert.";
+            const image = document.getElementById('input-image').value; 
+            
+            // Kirim ke DB (ini akan trigger doShowAlert via listener juga)
+            sendAlertToDB(name, amount, message, image);
+        };
 
+        document.getElementById('btn-acak').onclick = () => {
+            const names = ["Sultan_Gabut", "Anak_Kos", "FansBerat01", "Kang_Bakso", "User123"];
+            const amounts = ["IDR 10,000", "Rp 50.000", "1000 Stars", "Rp 5.000", "$5.00"];
+            const messages = ["Semangat terus!", "Request lagu.", "GGWP!", "Sapa aku dong!", "Buat kopi."];
+            const randomImages = [
+                "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExbDVqZm54bmI4ZnV4bmI4ZnV4bmI4ZnV4bmI4ZnV4bmI4ZnV4bmI4ZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Is1O1TWV0LEJi/giphy.gif",
+                "https://media3.giphy.com/media/l0ExhcMvt7ZRzpibK/giphy.gif",
+                "https://media.tenor.com/E1v8Xk1XNl4AAAAM/dancing-cat.gif"
+            ];
+
+            const rName = names[Math.floor(Math.random() * names.length)];
+            const rAmount = amounts[Math.floor(Math.random() * amounts.length)];
+            const rMsg = messages[Math.floor(Math.random() * messages.length)];
+            const rImg = Math.random() > 0.5 ? randomImages[Math.floor(Math.random() * randomImages.length)] : "";
+
+            sendAlertToDB(rName, rAmount, rMsg, rImg);
+        };
+
+        // Init
         window.onload = function() {
-            console.log("Overlay Loaded (Online Mode Only).");
+            loadVoices();
         }
     </script>
 </body>
