@@ -3,18 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OBS Alert - Remote & Custom CSS</title>
+    <title>OBS Alert - Dual Mode</title>
     <style>
         /* --- CSS DARI USER --- */
         @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700;800&display=swap');
 
+        /* --- LAYOUT UTAMA --- */
+        html, body {
+            margin: 0;
+            padding: 0;
+            background-color: transparent; /* Default awal transparan */
+            font-family: 'Open Sans', sans-serif;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            height: 100vh;
+            width: 100vw;
+        }
+
+        /* --- MENU PILIHAN MODE --- */
+        #mode-selector {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            gap: 20px;
+        }
+
+        .mode-btn {
+            padding: 20px 40px;
+            font-size: 24px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            width: 300px;
+            transition: transform 0.1s;
+        }
+
+        .btn-overlay { background: #00ff00; color: #000; }
+        .btn-remote { background: #00d2ff; color: #000; }
+        .mode-btn:active { transform: scale(0.95); }
+
+        .hidden { display: none !important; }
+
+        /* --- ALERT BOX (TAMPILAN OBS) --- */
         .alert {
             font-family: 'Open Sans', sans-serif !important;
             font-weight: 800;
             text-align: center;
             padding-top: 10px;
             text-shadow: 0 0 1px #000, 0 0 2px #000, 0 0 3px #000, 0 0 4px #000, 0 0 5px #000;
-            
             width: 100%;
             max-width: 400px;
             box-sizing: border-box;
@@ -31,29 +75,12 @@
             object-fit: cover; 
         }
 
-        .template {
-            font-size: 1.7rem !important;
-            margin: 5px 0;
-        }
-
-        .wiggle {
-            color: #0f0 !important;
-            display: inline-block;
-            animation: .5s infinite wiggle;
-        }
-
-        .from {
-            color: #eee !important;
-        }
-
+        .template { font-size: 1.7rem !important; margin: 5px 0; }
+        .wiggle { color: #0f0 !important; display: inline-block; animation: .5s infinite wiggle; }
+        .from { color: #eee !important; }
         .message {
-            line-height: 1.5;
-            padding: 10px;
-            font-weight: bolder !important;
-            color: #ff0 !important;
-            opacity: 1;
-            font-size: 1.51rem !important;
-            margin-top: 5px;
+            line-height: 1.5; padding: 10px; font-weight: bolder !important;
+            color: #ff0 !important; opacity: 1; font-size: 1.51rem !important; margin-top: 5px;
         }
 
         @keyframes wiggle {
@@ -62,110 +89,94 @@
             95% { transform: rotate(-5deg); }
         }
 
-        /* --- LAYOUT & KONTROL --- */
-        html, body {
-            margin: 0;
-            padding: 0;
-            background-color: transparent;
-            font-family: 'Open Sans', sans-serif;
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            height: 100vh;
-        }
-
+        /* --- PANEL REMOTE (TAMPILAN HP/LAPTOP) --- */
         #test-controls {
             position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%; 
-            background: transparent;
-            padding: 15px 20px;
-            z-index: 999;
-            display: flex;
-            flex-direction: row; 
-            align-items: center;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%); /* Center di layar */
+            width: 90%; 
+            max-width: 500px;
+            background: #222;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            display: flex; /* Flex akan di-toggle via JS */
+            flex-direction: column; 
             gap: 15px;
             box-sizing: border-box;
+            border: 2px solid #444;
         }
+
+        h2 { color: white; margin: 0 0 10px 0; text-align: center; }
 
         .input-group {
             display: flex;
-            flex-direction: row;
+            flex-direction: column;
             gap: 10px;
-            flex-grow: 1; 
-            flex-wrap: wrap;
+            width: 100%;
         }
 
         input[type="text"] {
-            padding: 10px;
-            border-radius: 4px;
+            padding: 15px;
+            font-size: 16px;
+            border-radius: 8px;
             border: 1px solid #555;
-            background: rgba(34, 34, 34, 0.9);
+            background: #333;
             color: #fff;
-            flex: 1; 
-            min-width: 100px;
         }
         
         .btn-group {
             display: flex;
             gap: 10px;
-            flex-shrink: 0; 
+            margin-top: 10px;
         }
         
         button {
-            background: #0f0;
             border: none;
-            padding: 10px 20px;
+            padding: 15px;
             font-weight: bold;
             cursor: pointer;
-            border-radius: 4px;
+            border-radius: 8px;
             color: #000;
-            font-size: 14px;
-            white-space: nowrap;
+            font-size: 16px;
+            flex: 1;
         }
         
-        button.manual-btn {
-            background: #00d2ff;
-        }
-
-        button.bg-btn {
-            background: #ff00ff; /* Magenta */
-            color: white;
-        }
-
-        button:hover {
-            opacity: 0.8;
-        }
+        button.manual-btn { background: #00d2ff; }
+        button.bg-btn { background: #ff00ff; color: white; }
+        button:hover { opacity: 0.8; }
 
         .img-placeholder {
-            width: 100%;
-            height: 200px;
-            background: #333;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 10px;
-            margin-bottom: 14px;
+            width: 100%; height: 200px; background: #333; color: white;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 10px; margin-bottom: 14px;
         }
 
-        /* Indikator Status Koneksi */
+        /* Indikator Status */
         #status-indicator {
-            position: fixed;
-            bottom: 5px;
-            right: 5px;
-            font-size: 10px;
-            color: #aaa;
-            z-index: 1000;
+            position: fixed; bottom: 5px; right: 5px; font-size: 12px; color: #aaa; z-index: 1000;
         }
+        
+        /* Helper untuk sembunyikan elemen di mode tertentu */
+        .show-overlay-only #test-controls { display: none !important; }
+        .show-remote-only #alert-box { display: none !important; }
+        .show-remote-only body { background-color: #1a1a1a !important; } /* Background gelap di remote */
     </style>
 </head>
 <body>
 
-    <div id="alert-box" class="alert">
-        <img src="thanks.gif" class="media" id="alert-media" onerror="this.style.display='none'; document.getElementById('media-fallback').style.display='flex'">
+    <!-- MENU PILIHAN MODE -->
+    <div id="mode-selector">
+        <h1 style="color:white; margin-bottom:30px;">Pilih Mode</h1>
+        <button class="mode-btn btn-overlay" onclick="setMode('overlay')">Mode Overlay (OBS)</button>
+        <button class="mode-btn btn-remote" onclick="setMode('remote')">Mode Remote (HP/PC)</button>
+        <p style="color:#aaa; margin-top:20px; font-size:12px;">Tips: Tambahkan ?mode=overlay di URL OBS untuk otomatis.</p>
+    </div>
+
+    <!-- AREA ALERT (OBS) -->
+    <div id="alert-box" class="alert hidden">
+        <img src="thanks.gif" class="media" id="alert-media" onerror="this.src='thanks.gif'">
         <div id="media-fallback" class="img-placeholder" style="display: none;">thanks.gif missing</div>
 
         <p class="template">
@@ -176,91 +187,126 @@
         <p class="message" id="message-text">Pesan...</p>
     </div>
 
-    <!-- PANEL KONTROL -->
-    <div id="test-controls">
+    <!-- AREA KONTROL (REMOTE) -->
+    <div id="test-controls" class="hidden">
+        <h2>Remote Control Gift</h2>
         <div class="input-group">
-            <input type="text" id="input-name" placeholder="Nama" value="Penonton Setia">
+            <input type="text" id="input-name" placeholder="Nama Pengirim" value="Penonton Setia">
             <input type="text" id="input-amount" placeholder="Nominal" value="IDR 10,000">
-            <input type="text" id="input-image" placeholder="URL Gambar (Kosong = thanks.gif)" value="">
+            <input type="text" id="input-image" placeholder="URL Gambar (Kosong = Default)" value="">
             <input type="text" id="input-message" placeholder="Pesan..." value="Halo bang, request lagu dong!">
         </div>
         <div class="btn-group">
-            <button class="manual-btn" id="btn-kirim">Kirim</button>
-            <button id="btn-acak">Acak</button>
-            <button class="bg-btn" onclick="toggleBackground()">Ganti BG</button>
+            <button class="manual-btn" id="btn-kirim">Kirim Alert</button>
+            <button id="btn-acak" style="background:#ff9900;">Kirim Acak</button>
         </div>
+        <div style="margin-top:10px; text-align:center; color:#0f0; font-size:12px;" id="sent-status"></div>
     </div>
     
     <div id="status-indicator">Connecting...</div>
 
     <script type="module">
-        // --- FIREBASE IMPORTS ---
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // --- KONFIGURASI FIREBASE ---
-        // Mencoba mengambil config dari environment variable
         let db, auth, appId;
+        let currentMode = null; // 'overlay' atau 'remote'
         const statusDiv = document.getElementById('status-indicator');
 
-        try {
-            const firebaseConfig = JSON.parse(__firebase_config);
-            const app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-            appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            
-            // Login Anonymously
-            signInAnonymously(auth).catch(console.error);
-            
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    statusDiv.innerText = "Connected: " + user.uid.substring(0,5);
-                    setupListener(user);
-                } else {
-                    statusDiv.innerText = "Disconnected";
-                }
-            });
+        // --- 1. INISIALISASI FIREBASE (PERBAIKAN PERMISSION) ---
+        async function initFirebase() {
+            try {
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-        } catch (e) {
-            console.error("Firebase Config Error:", e);
-            statusDiv.innerText = "Offline Mode (Local Only)";
-            // Fallback untuk mode offline murni jika perlu, tapi fitur remote akan mati
+                // LOGIC PERBAIKAN PERMISSION: Cek token dulu
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                    console.log("Signed in with Custom Token");
+                } else {
+                    await signInAnonymously(auth);
+                    console.log("Signed in Anonymously");
+                }
+
+                onAuthStateChanged(auth, (user) => {
+                    if (user) {
+                        statusDiv.innerText = "Online: " + user.uid.substring(0,5);
+                        // Jika mode overlay aktif, mulai dengarkan data
+                        if (currentMode === 'overlay') setupListener();
+                    } else {
+                        statusDiv.innerText = "Disconnected";
+                    }
+                });
+
+            } catch (e) {
+                console.error("Firebase Error:", e);
+                statusDiv.innerText = "Error / Offline";
+            }
         }
 
-        // --- LOGIKA ALERT (LOKAL) ---
+        // --- 2. LOGIKA TAMPILAN & MODE ---
+        
+        window.setMode = function(mode) {
+            currentMode = mode;
+            const selector = document.getElementById('mode-selector');
+            const alertBox = document.getElementById('alert-box');
+            const controls = document.getElementById('test-controls');
+
+            // Sembunyikan menu pilihan
+            selector.style.display = 'none';
+
+            if (mode === 'overlay') {
+                // Mode OBS: Tampilkan Alert Area, Sembunyikan Kontrol
+                document.body.classList.add('show-overlay-only');
+                alertBox.classList.remove('hidden');
+                // Setup listener jika sudah login (atau akan disetup saat login selesai)
+                if (auth && auth.currentUser) setupListener();
+                
+            } else if (mode === 'remote') {
+                // Mode Remote: Sembunyikan Alert Area, Tampilkan Kontrol, Ubah BG
+                document.body.classList.add('show-remote-only');
+                controls.classList.remove('hidden');
+                controls.style.display = 'flex';
+            }
+        }
+
+        // Cek URL Parameter saat load (contoh: ?mode=overlay)
+        window.onload = function() {
+            loadVoices();
+            initFirebase();
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const modeParam = urlParams.get('mode');
+
+            if (modeParam === 'overlay') {
+                window.setMode('overlay');
+            } else if (modeParam === 'remote') {
+                window.setMode('remote');
+            }
+            // Jika tidak ada parameter, menu pilihan tetap muncul
+        };
+
+        // --- 3. LOGIKA OVERLAY (PENERIMA) ---
         let hideTimeout = null; 
         let voices = [];
         let indoVoice = null;
-        let lastProcessedTime = Date.now(); // Untuk mencegah alert lama muncul saat reload
 
-        // Setup Suara
         function loadVoices() {
             voices = window.speechSynthesis.getVoices();
             indoVoice = voices.find(voice => voice.name.includes('Google Bahasa Indonesia')) || 
                         voices.find(voice => voice.name.includes('Microsoft Gadis')) ||
                         voices.find(voice => voice.lang === 'id-ID');
         }
-        if (speechSynthesis.onvoiceschanged !== undefined) {
-            speechSynthesis.onvoiceschanged = loadVoices;
-        }
-
-        function toggleBackground() {
-            const currentBg = document.body.style.backgroundColor;
-            if (currentBg === "" || currentBg === "transparent" || currentBg === "rgba(0, 0, 0, 0)") {
-                document.body.style.backgroundColor = "#ff00ff"; // Magenta
-            } else {
-                document.body.style.backgroundColor = "transparent"; 
-            }
-        }
+        if (speechSynthesis.onvoiceschanged !== undefined) speechSynthesis.onvoiceschanged = loadVoices;
 
         function cleanTextForSpeech(text) {
             let clean = text;
-            clean = clean.replace(/IDR\s*/gi, '');
-            clean = clean.replace(/Rp\.?\s*/gi, '');
-            clean = clean.replace(/\$/g, ''); 
-            clean = clean.replace(/,/g, ''); 
+            clean = clean.replace(/IDR\s*/gi, ''); clean = clean.replace(/Rp\.?\s*/gi, '');
+            clean = clean.replace(/\$/g, ''); clean = clean.replace(/,/g, ''); 
             clean = clean.replace(/Stars/gi, 'Bintang');
             return clean;
         }
@@ -269,134 +315,101 @@
             window.speechSynthesis.cancel();
             const utterance = new SpeechSynthesisUtterance(text);
             if (indoVoice) utterance.voice = indoVoice;
-            utterance.lang = 'id-ID'; 
-            utterance.rate = 1.0;     
+            utterance.lang = 'id-ID'; utterance.rate = 1.0;     
             window.speechSynthesis.speak(utterance);
         }
 
-        // Fungsi Menampilkan Alert di Layar (Visual & Audio)
         function doShowAlert(name, amount, message, imageUrl) {
             const alertBox = document.getElementById('alert-box');
             const mediaElement = document.getElementById('alert-media');
-            const mediaFallback = document.getElementById('media-fallback');
 
-            // Handle Gambar
             if (imageUrl && imageUrl.trim() !== "") {
                 mediaElement.src = imageUrl;
             } else {
                 mediaElement.src = "thanks.gif";
             }
             mediaElement.style.display = 'block';
-            mediaFallback.style.display = 'none';
 
-            // Handle Teks
             document.getElementById('amount-text').innerText = amount;
             document.getElementById('supporter-name').innerText = name;
             document.getElementById('message-text').innerText = message;
 
-            // Tampilkan (No Fade)
             alertBox.style.opacity = '1';
             
-            // Timer Reset
             if (hideTimeout) clearTimeout(hideTimeout);
             hideTimeout = setTimeout(() => {
                 alertBox.style.opacity = '0';
             }, 12000); 
 
-            // Audio TTS
             const spokenAmount = cleanTextForSpeech(amount);
             const textToRead = `${spokenAmount} dari ${name}. ${message}`;
-            setTimeout(() => {
-                speakText(textToRead);
-            }, 200);
+            setTimeout(() => { speakText(textToRead); }, 200);
         }
 
-        // --- LOGIKA DATABASE (REMOTE) ---
-
-        // 1. MENDENGARKAN DATA (Receiver)
-        function setupListener(user) {
+        function setupListener() {
             if (!db) return;
-            
-            // Gunakan collection 'public' agar bisa dishare antar device tanpa login spesifik
             const alertsRef = collection(db, 'artifacts', appId, 'public', 'data', 'obs_alerts');
 
             onSnapshot(alertsRef, (snapshot) => {
                 snapshot.docChanges().forEach((change) => {
                     if (change.type === "added") {
                         const data = change.doc.data();
-                        
-                        // Filter: Hanya tampilkan data yang baru dibuat (kurang dari 10 detik yang lalu)
-                        // Ini penting agar saat OBS direfresh, alert lama tidak muncul semua
+                        // Hanya terima data baru (10 detik terakhir)
                         if (data.timestamp && data.timestamp > Date.now() - 10000) {
-                            console.log("Alert baru diterima dari Database:", data);
                             doShowAlert(data.name, data.amount, data.message, data.image);
                         }
                     }
                 });
-            }, (error) => {
-                console.error("Error listening to alerts:", error);
-            });
+            }, (error) => console.error("Listener Error:", error));
         }
 
-        // 2. MENGIRIM DATA (Sender)
+        // --- 4. LOGIKA REMOTE (PENGIRIM) ---
         async function sendAlertToDB(name, amount, message, image) {
-            if (!db || !auth.currentUser) {
-                // Jika offline/error config, fallback ke lokal
-                console.warn("Database tidak siap, menjalankan alert lokal.");
-                doShowAlert(name, amount, message, image);
-                return;
-            }
+            if (!db || !auth.currentUser) return;
+
+            const btn = document.getElementById('btn-kirim');
+            const status = document.getElementById('sent-status');
+            btn.innerText = "Mengirim...";
+            btn.disabled = true;
 
             try {
                 const alertsRef = collection(db, 'artifacts', appId, 'public', 'data', 'obs_alerts');
                 await addDoc(alertsRef, {
-                    name: name,
-                    amount: amount,
-                    message: message,
-                    image: image,
-                    timestamp: Date.now() // Waktu klien saat ini
+                    name: name, amount: amount, message: message, image: image,
+                    timestamp: Date.now()
                 });
-                console.log("Alert dikirim ke Database!");
+                status.innerText = "Berhasil Terkirim!";
+                setTimeout(() => status.innerText = "", 2000);
             } catch (e) {
-                console.error("Gagal mengirim alert:", e);
-                alert("Gagal mengirim ke remote: " + e.message);
+                console.error(e);
+                status.innerText = "Gagal!";
+            } finally {
+                btn.innerText = "Kirim Alert";
+                btn.disabled = false;
             }
         }
-
-        // --- EVENT HANDLERS TOMBOL ---
 
         document.getElementById('btn-kirim').onclick = () => {
             const name = document.getElementById('input-name').value || "Anonim";
             const amount = document.getElementById('input-amount').value || "Rp 0";
             const message = document.getElementById('input-message').value || "Tes alert.";
             const image = document.getElementById('input-image').value; 
-            
-            // Kirim ke DB (ini akan trigger doShowAlert via listener juga)
             sendAlertToDB(name, amount, message, image);
         };
 
         document.getElementById('btn-acak').onclick = () => {
-            const names = ["Sultan_Gabut", "Anak_Kos", "FansBerat01", "Kang_Bakso", "User123"];
-            const amounts = ["IDR 10,000", "Rp 50.000", "1000 Stars", "Rp 5.000", "$5.00"];
-            const messages = ["Semangat terus!", "Request lagu.", "GGWP!", "Sapa aku dong!", "Buat kopi."];
-            const randomImages = [
-                "https://media1.giphy.com/media/v1.Y2lkPTc5MGI3NjExbDVqZm54bmI4ZnV4bmI4ZnV4bmI4ZnV4bmI4ZnV4bmI4ZnV4bmI4ZiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/Is1O1TWV0LEJi/giphy.gif",
-                "https://media3.giphy.com/media/l0ExhcMvt7ZRzpibK/giphy.gif",
-                "https://media.tenor.com/E1v8Xk1XNl4AAAAM/dancing-cat.gif"
-            ];
-
-            const rName = names[Math.floor(Math.random() * names.length)];
-            const rAmount = amounts[Math.floor(Math.random() * amounts.length)];
-            const rMsg = messages[Math.floor(Math.random() * messages.length)];
-            const rImg = Math.random() > 0.5 ? randomImages[Math.floor(Math.random() * randomImages.length)] : "";
-
-            sendAlertToDB(rName, rAmount, rMsg, rImg);
+            const names = ["Sultan", "Bocil_FF", "Kucing", "Wibu_Idaman"];
+            const amounts = ["Rp 10.000", "Rp 50.000", "Rp 100.000"];
+            const msgs = ["Semangat bang!", "Info mabar?", "Halo salam kenal"];
+            const imgs = ["", "https://media.tenor.com/E1v8Xk1XNl4AAAAM/dancing-cat.gif"];
+            
+            sendAlertToDB(
+                names[Math.floor(Math.random()*names.length)],
+                amounts[Math.floor(Math.random()*amounts.length)],
+                msgs[Math.floor(Math.random()*msgs.length)],
+                Math.random() > 0.5 ? imgs[1] : ""
+            );
         };
-
-        // Init
-        window.onload = function() {
-            loadVoices();
-        }
     </script>
 </body>
 </html>
