@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OBS Alert - Dual Mode</title>
+    <title>OBS Alert - Dual Mode (Ready)</title>
     <style>
         /* --- CSS DARI USER --- */
         @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700;800&display=swap');
@@ -207,35 +207,47 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithCustomToken, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-analytics.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        let db, auth, appId;
-        let currentMode = null; // 'overlay' atau 'remote'
+        let db, auth, analytics;
+        // Gunakan ID statis untuk aplikasi Anda
+        const appId = 'obs-oroject'; 
+        let currentMode = null; 
         const statusDiv = document.getElementById('status-indicator');
 
-        // --- 1. INISIALISASI FIREBASE (PERBAIKAN PERMISSION) ---
+        // ==========================================
+        //  KONFIGURASI FIREBASE ANDA (SUDAH DIISI)
+        // ==========================================
+        const firebaseConfig = {
+          apiKey: "AIzaSyAFW7wH25Wm525kwlF-8jAEFhWIhkzOlDw",
+          authDomain: "obs-oroject.firebaseapp.com",
+          databaseURL: "https://obs-oroject-default-rtdb.asia-southeast1.firebasedatabase.app",
+          projectId: "obs-oroject",
+          storageBucket: "obs-oroject.firebasestorage.app",
+          messagingSenderId: "58130724159",
+          appId: "1:58130724159:web:e0cbf2439d173c5883cf8a",
+          measurementId: "G-L6M3RCWJ79"
+        };
+        // ==========================================
+
         async function initFirebase() {
             try {
-                const firebaseConfig = JSON.parse(__firebase_config);
+                // Initialize Firebase dengan config Anda
                 const app = initializeApp(firebaseConfig);
+                analytics = getAnalytics(app); // Inisialisasi Analytics
                 auth = getAuth(app);
                 db = getFirestore(app);
-                appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
 
-                // LOGIC PERBAIKAN PERMISSION: Cek token dulu
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                    console.log("Signed in with Custom Token");
-                } else {
-                    await signInAnonymously(auth);
-                    console.log("Signed in Anonymously");
-                }
+                // Login sebagai Anonim (Pastikan Auth -> Sign-in method -> Anonymous diaktifkan di Console)
+                await signInAnonymously(auth);
+                console.log("Signed in Anonymously");
 
                 onAuthStateChanged(auth, (user) => {
                     if (user) {
-                        statusDiv.innerText = "Online: " + user.uid.substring(0,5);
-                        // Jika mode overlay aktif, mulai dengarkan data
+                        statusDiv.innerText = "Online";
+                        // Jika dalam mode overlay, mulai dengarkan data
                         if (currentMode === 'overlay') setupListener();
                     } else {
                         statusDiv.innerText = "Disconnected";
@@ -244,37 +256,32 @@
 
             } catch (e) {
                 console.error("Firebase Error:", e);
-                statusDiv.innerText = "Error / Offline";
+                statusDiv.innerText = "Error Koneksi";
+                alert("Gagal koneksi Firebase. Pastikan 'Anonymous Auth' sudah aktif dan 'Firestore' sudah dibuat di console.firebase.google.com");
             }
         }
 
-        // --- 2. LOGIKA TAMPILAN & MODE ---
-        
+        // --- SISTEM MODE ---
         window.setMode = function(mode) {
             currentMode = mode;
             const selector = document.getElementById('mode-selector');
             const alertBox = document.getElementById('alert-box');
             const controls = document.getElementById('test-controls');
 
-            // Sembunyikan menu pilihan
             selector.style.display = 'none';
 
             if (mode === 'overlay') {
-                // Mode OBS: Tampilkan Alert Area, Sembunyikan Kontrol
                 document.body.classList.add('show-overlay-only');
                 alertBox.classList.remove('hidden');
-                // Setup listener jika sudah login (atau akan disetup saat login selesai)
+                // Setup listener akan dipanggil di onAuthStateChanged jika login berhasil
                 if (auth && auth.currentUser) setupListener();
-                
             } else if (mode === 'remote') {
-                // Mode Remote: Sembunyikan Alert Area, Tampilkan Kontrol, Ubah BG
                 document.body.classList.add('show-remote-only');
                 controls.classList.remove('hidden');
                 controls.style.display = 'flex';
             }
         }
 
-        // Cek URL Parameter saat load (contoh: ?mode=overlay)
         window.onload = function() {
             loadVoices();
             initFirebase();
@@ -287,10 +294,9 @@
             } else if (modeParam === 'remote') {
                 window.setMode('remote');
             }
-            // Jika tidak ada parameter, menu pilihan tetap muncul
         };
 
-        // --- 3. LOGIKA OVERLAY (PENERIMA) ---
+        // --- LOGIKA OVERLAY ---
         let hideTimeout = null; 
         let voices = [];
         let indoVoice = null;
@@ -348,13 +354,13 @@
 
         function setupListener() {
             if (!db) return;
-            const alertsRef = collection(db, 'artifacts', appId, 'public', 'data', 'obs_alerts');
+            // Gunakan path spesifik ke project ID Anda agar unik
+            const alertsRef = collection(db, 'obs_alerts_data');
 
             onSnapshot(alertsRef, (snapshot) => {
                 snapshot.docChanges().forEach((change) => {
                     if (change.type === "added") {
                         const data = change.doc.data();
-                        // Hanya terima data baru (10 detik terakhir)
                         if (data.timestamp && data.timestamp > Date.now() - 10000) {
                             doShowAlert(data.name, data.amount, data.message, data.image);
                         }
@@ -363,9 +369,12 @@
             }, (error) => console.error("Listener Error:", error));
         }
 
-        // --- 4. LOGIKA REMOTE (PENGIRIM) ---
+        // --- LOGIKA REMOTE ---
         async function sendAlertToDB(name, amount, message, image) {
-            if (!db || !auth.currentUser) return;
+            if (!db || !auth.currentUser) {
+                alert("Belum terkoneksi ke Database. Tunggu sebentar...");
+                return;
+            }
 
             const btn = document.getElementById('btn-kirim');
             const status = document.getElementById('sent-status');
@@ -373,7 +382,7 @@
             btn.disabled = true;
 
             try {
-                const alertsRef = collection(db, 'artifacts', appId, 'public', 'data', 'obs_alerts');
+                const alertsRef = collection(db, 'obs_alerts_data');
                 await addDoc(alertsRef, {
                     name: name, amount: amount, message: message, image: image,
                     timestamp: Date.now()
@@ -382,7 +391,7 @@
                 setTimeout(() => status.innerText = "", 2000);
             } catch (e) {
                 console.error(e);
-                status.innerText = "Gagal!";
+                status.innerText = "Gagal! Cek Firestore Rules.";
             } finally {
                 btn.innerText = "Kirim Alert";
                 btn.disabled = false;
