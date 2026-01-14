@@ -155,6 +155,7 @@
 <body>
 
     <div id="alert-box" class="alert">
+        <!-- Ganti 'thanks.gif' dengan URL gambar jika ingin pakai link online -->
         <img src="thanks.gif" class="media" id="alert-media" onerror="this.style.display='none'; document.getElementById('media-fallback').style.display='flex'">
         <div id="media-fallback" class="img-placeholder" style="display: none;">thanks.gif missing</div>
 
@@ -180,6 +181,7 @@
     </div>
 
     <script>
+        // --- DATA DUMMY ---
         const names = [
             "Sultan_Gabut", "Anak_Kos", "FansBerat01", "Kang_Bakso", 
             "User123", "SiapaHayoo", "Admin_Tobat", "Warga_Konoha", 
@@ -203,11 +205,10 @@
             "Mantap bang, lanjutkannnn!"
         ];
 
-        // --- MANAJEMEN SUARA GLOBAL ---
+        // --- MANAJEMEN SUARA ---
         let availableVoices = [];
         let hideTimeout = null; 
 
-        // Fungsi untuk update list suara (untuk fallback offline)
         function updateVoiceList() {
             if(typeof speechSynthesis === 'undefined') return;
             availableVoices = window.speechSynthesis.getVoices();
@@ -218,47 +219,48 @@
             window.speechSynthesis.onvoiceschanged = updateVoiceList;
         }
 
-        // --- FUNGSI FORMAT TEXT PINTAR ---
+        // --- FORMAT TEKS AGAR DIBACA NATURAL ---
         function cleanTextForSpeech(text) {
             let clean = text;
             clean = clean.replace(/IDR\s*/gi, '');
             clean = clean.replace(/Rp\.?\s*/gi, '');
             clean = clean.replace(/\$/g, ''); 
-            clean = clean.replace(/,/g, '');
+            clean = clean.replace(/,/g, ''); // Hapus koma agar "10,000" dibaca "Sepuluh Ribu"
             clean = clean.replace(/Stars/gi, 'Bintang');
             return clean;
         }
 
-        // --- FUNGSI UTAMA: BICARA (HYBRID MODE) ---
+        // --- FUNGSI BICARA (PRIORITAS ONLINE) ---
         function speakText(text) {
-            // 1. ONLINE GOOGLE TTS (Suara Wanita Default Google)
-            // Ini adalah cara terbaik mendapatkan suara wanita jika offline tidak ada
+            // METODE ONLINE: Google Translate TTS (Suara Wanita Indonesia)
+            // Ini menggunakan API publik Google, jadi membutuhkan koneksi internet.
             
-            const safeText = text.substring(0, 200); 
+            const safeText = text.substring(0, 200); // Batas karakter URL
             const encodedText = encodeURIComponent(safeText);
             
-            // URL Google Translate TTS
+            // URL ini secara default memberikan suara Cewek Indonesia
             const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=id&client=tw-ob&q=${encodedText}`;
 
             const audio = new Audio(url);
             
             audio.onplay = () => {
-                console.log("Memainkan TTS Online (Suara Google Wanita)");
+                console.log("Berhasil memutar TTS Online (Google Wanita)");
             };
 
-            // Jika Gagal, gunakan Fallback Offline
+            // Jika Online Gagal (Misal internet putus), baru cari offline
             audio.onerror = (e) => {
-                console.warn("TTS Online gagal, mencoba Offline TTS.", e);
+                console.warn("Gagal TTS Online, mencoba Offline.", e);
                 speakTextOffline(text);
             };
 
+            // Play audio
             audio.play().catch(e => {
-                console.warn("Autoplay TTS Online dicegah/error, mencoba offline:", e);
+                console.warn("Autoplay error (mungkin butuh interaksi user atau setting OBS), mencoba offline:", e);
                 speakTextOffline(text);
             });
         }
 
-        // --- METODE CADANGAN: OFFLINE WINDOWS TTS ---
+        // --- FUNGSI CADANGAN (OFFLINE) ---
         function speakTextOffline(text) {
             if (!('speechSynthesis' in window)) return;
 
@@ -267,29 +269,23 @@
 
             const utterance = new SpeechSynthesisUtterance(text);
             
-            // --- LOGIKA PRIORITAS SUARA WANITA (Termasuk "Wanita A") ---
+            // Logika Mencari Suara Wanita Offline (Jika Online Gagal)
             let selectedVoice = null;
 
-            // 1. Cari Spesifik "Wanita A" atau "Female A" (Sesuai request)
-            selectedVoice = availableVoices.find(v => v.name.includes("Wanita A") || v.name.includes("Female A"));
+            // 1. Cari yang namanya eksplisit wanita/gadis
+            selectedVoice = availableVoices.find(v => v.lang.includes('id') && (
+                v.name.includes("Gadis") || 
+                v.name.includes("Wanita") || 
+                v.name.includes("Female") ||
+                v.name.includes("Google Bahasa Indonesia")
+            ));
 
-            // 2. Cari "Microsoft Gadis" (Suara Wanita Windows ID)
-            if (!selectedVoice) selectedVoice = availableVoices.find(v => v.name.includes("Microsoft Gadis"));
-            
-            // 3. Cari "Google Bahasa Indonesia" (Suara Wanita Chrome ID)
-            if (!selectedVoice) selectedVoice = availableVoices.find(v => v.name.includes("Google Bahasa Indonesia")); 
-            
-            // 4. Cari apapun yang ada "Female" atau "Wanita" dengan kode ID
-            if (!selectedVoice) {
-                selectedVoice = availableVoices.find(v => v.lang.includes('id') && (v.name.toLowerCase().includes("female") || v.name.toLowerCase().includes("wanita")));
-            }
-
-            // 5. Fallback: Suara ID apapun yang ada
+            // 2. Jika tidak ada, cari suara ID apapun
             if (!selectedVoice) selectedVoice = availableVoices.find(v => v.lang.includes('id'));
 
             if (selectedVoice) {
                 utterance.voice = selectedVoice;
-                console.log("Offline TTS menggunakan: " + selectedVoice.name);
+                console.log("Menggunakan Suara Offline: " + selectedVoice.name);
             }
 
             utterance.lang = 'id-ID';
@@ -299,21 +295,25 @@
             window.speechSynthesis.speak(utterance);
         }
 
-        // --- FUNGSI TRIGGER ALERT ---
+        // --- LOGIKA TAMPILAN ALERT ---
         function showAlert(name, amount, message) {
             const alertBox = document.getElementById('alert-box');
             
+            // Tampil
             alertBox.style.opacity = '1';
             
+            // Timer 12 Detik
             if (hideTimeout) clearTimeout(hideTimeout);
             hideTimeout = setTimeout(() => {
                 alertBox.style.opacity = '0';
             }, 12000); 
 
+            // Update Teks Layar
             document.getElementById('amount-text').innerText = amount;
             document.getElementById('supporter-name').innerText = name;
             document.getElementById('message-text').innerText = message;
             
+            // Siapkan Teks untuk Dibaca
             const spokenAmount = cleanTextForSpeech(amount);
             const textToRead = `${spokenAmount} dari ${name}. ${message}`;
             
@@ -343,6 +343,7 @@
 
         window.onload = function() {
             console.log("Overlay Loaded.");
+            // Preload suara offline
             if ('speechSynthesis' in window) {
                 window.speechSynthesis.getVoices();
             }
