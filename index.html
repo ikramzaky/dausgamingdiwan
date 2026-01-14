@@ -9,16 +9,17 @@
         @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;600;700;800&display=swap');
 
         /* Reset & Body (Transparan untuk OBS) */
-        body {
+        html, body {
             margin: 0;
             padding: 0;
-            background-color: transparent;
+            background-color: transparent; /* Default untuk OBS */
             font-family: 'Open Sans', sans-serif;
             overflow: hidden;
             display: flex;
             justify-content: center;
             align-items: flex-start; /* Alert muncul dari atas */
             height: 100vh;
+            transition: background-color 0.3s; /* Efek halus saat ganti BG testing */
         }
 
         /* --- CSS TAMPILAN --- */
@@ -85,14 +86,14 @@
             bottom: 0;
             left: 0;
             width: 100%; 
-            background: rgba(0, 0, 0, 0.9);
+            background: transparent; /* Background jadi Transparan */
             padding: 15px 20px;
             z-index: 999;
             display: flex;
             flex-direction: row; 
             align-items: center;
             gap: 15px;
-            border-top: 2px solid #333;
+            border-top: none; /* Hapus border */
             box-sizing: border-box;
         }
 
@@ -107,7 +108,7 @@
             padding: 10px;
             border-radius: 4px;
             border: 1px solid #555;
-            background: #222;
+            background: rgba(34, 34, 34, 0.8); /* Sedikit transparan pada input agar tidak terlalu mencolok */
             color: #fff;
             flex: 1; 
             min-width: 100px;
@@ -133,6 +134,11 @@
         
         button.manual-btn {
             background: #00d2ff;
+        }
+
+        /* Tombol Ganti Background (Orange) */
+        button.bg-btn {
+            background: #ff9900;
         }
 
         button:hover {
@@ -177,6 +183,7 @@
         <div class="btn-group">
             <button class="manual-btn" onclick="triggerManualAlert()">Kirim</button>
             <button onclick="simulateDonation()">Acak</button>
+            <button class="bg-btn" onclick="toggleBackground()" title="Ganti warna background untuk testing">Ganti BG</button>
         </div>
     </div>
 
@@ -205,18 +212,20 @@
             "Mantap bang, lanjutkannnn!"
         ];
 
-        // --- MANAJEMEN SUARA ---
-        let availableVoices = [];
         let hideTimeout = null; 
 
-        function updateVoiceList() {
-            if(typeof speechSynthesis === 'undefined') return;
-            availableVoices = window.speechSynthesis.getVoices();
-        }
-
-        if ('speechSynthesis' in window) {
-            updateVoiceList();
-            window.speechSynthesis.onvoiceschanged = updateVoiceList;
+        // --- FITUR GANTI BACKGROUND (UNTUK TESTING DI CHROME) ---
+        function toggleBackground() {
+            const currentBg = document.body.style.backgroundColor;
+            
+            // Logika Rotasi Warna: Transparan -> Abu Gelap -> Merah Terang -> Transparan
+            if (currentBg === "" || currentBg === "transparent" || currentBg === "rgba(0, 0, 0, 0)") {
+                document.body.style.backgroundColor = "#333"; // Abu-abu Gelap (Biar teks kelihatan)
+            } else if (currentBg === "rgb(51, 51, 51)") { // #333 dalam RGB
+                document.body.style.backgroundColor = "#ff0000"; // Merah Terang (Agar kontras dengan teks hijau)
+            } else {
+                document.body.style.backgroundColor = "transparent"; // Kembali ke Transparan (Untuk OBS)
+            }
         }
 
         // --- FORMAT TEKS AGAR DIBACA NATURAL ---
@@ -230,15 +239,13 @@
             return clean;
         }
 
-        // --- FUNGSI BICARA (PRIORITAS ONLINE) ---
+        // --- FUNGSI BICARA (ONLINE ONLY - GOOGLE TTS) ---
         function speakText(text) {
-            // METODE ONLINE: Google Translate TTS (Suara Wanita Indonesia)
-            // Ini menggunakan API publik Google, jadi membutuhkan koneksi internet.
-            
-            const safeText = text.substring(0, 200); // Batas karakter URL
+            // URL Google Translate TTS (Default: Wanita Indonesia)
+            const safeText = text.substring(0, 200); 
             const encodedText = encodeURIComponent(safeText);
             
-            // URL ini secara default memberikan suara Cewek Indonesia
+            // Menggunakan client=tw-ob untuk akses publik TTS Google
             const url = `https://translate.google.com/translate_tts?ie=UTF-8&tl=id&client=tw-ob&q=${encodedText}`;
 
             const audio = new Audio(url);
@@ -247,52 +254,13 @@
                 console.log("Berhasil memutar TTS Online (Google Wanita)");
             };
 
-            // Jika Online Gagal (Misal internet putus), baru cari offline
             audio.onerror = (e) => {
-                console.warn("Gagal TTS Online, mencoba Offline.", e);
-                speakTextOffline(text);
+                console.error("Gagal memutar TTS. Pastikan koneksi internet aktif.", e);
             };
 
-            // Play audio
             audio.play().catch(e => {
-                console.warn("Autoplay error (mungkin butuh interaksi user atau setting OBS), mencoba offline:", e);
-                speakTextOffline(text);
+                console.error("Autoplay dicegah oleh browser. Interaksi user mungkin diperlukan pertama kali.", e);
             });
-        }
-
-        // --- FUNGSI CADANGAN (OFFLINE) ---
-        function speakTextOffline(text) {
-            if (!('speechSynthesis' in window)) return;
-
-            window.speechSynthesis.cancel(); 
-            if (availableVoices.length === 0) availableVoices = window.speechSynthesis.getVoices();
-
-            const utterance = new SpeechSynthesisUtterance(text);
-            
-            // Logika Mencari Suara Wanita Offline (Jika Online Gagal)
-            let selectedVoice = null;
-
-            // 1. Cari yang namanya eksplisit wanita/gadis
-            selectedVoice = availableVoices.find(v => v.lang.includes('id') && (
-                v.name.includes("Gadis") || 
-                v.name.includes("Wanita") || 
-                v.name.includes("Female") ||
-                v.name.includes("Google Bahasa Indonesia")
-            ));
-
-            // 2. Jika tidak ada, cari suara ID apapun
-            if (!selectedVoice) selectedVoice = availableVoices.find(v => v.lang.includes('id'));
-
-            if (selectedVoice) {
-                utterance.voice = selectedVoice;
-                console.log("Menggunakan Suara Offline: " + selectedVoice.name);
-            }
-
-            utterance.lang = 'id-ID';
-            utterance.volume = 1.0; 
-            utterance.rate = 1.0; 
-
-            window.speechSynthesis.speak(utterance);
         }
 
         // --- LOGIKA TAMPILAN ALERT ---
@@ -342,11 +310,7 @@
         }
 
         window.onload = function() {
-            console.log("Overlay Loaded.");
-            // Preload suara offline
-            if ('speechSynthesis' in window) {
-                window.speechSynthesis.getVoices();
-            }
+            console.log("Overlay Loaded (Online Mode Only).");
         }
     </script>
 </body>
